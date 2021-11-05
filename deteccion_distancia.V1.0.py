@@ -43,21 +43,25 @@ def main():
         # set up cameras
         # ------------------------------
 
-        # cameras variables
-        left_camera_source =  2# 'demo_logi-c920-stereo-left-1024x0576-.mp4' #'demo_logi-c920-stereo-left-1280x0720-.mp4'   #./demo_logi-c920-stereo-left-1024x0576-.mp4'  # Left Camera in Camrea Point of View (PoV)
-        right_camera_source = 0 # 'demo_logi-c920-stereo-right-1024x0576-.mp4' #'demo_logi-c920-stereo-right-1280x0720-.mp4'  #./demo_logi-c920-stereo-right-1024x0576-.mp4' # Right Camera in Camrea Point of View (PoV)
+        # cameras variables:
+        # Aquí se pone el numero del device obtenido en linux: Para obtener este
+        # número se obtiene con la siguiente línea de comandos:
+        # $ v4l2-ctl --list-devices
+        # Tambíen se puede poner un path + filename de un archivo de video, 
+        left_camera_source =  './videos/demo_logi-c920-stereo-left-1024x0576-.mp4' #'demo_logi-c920-stereo-left-1280x0720-.mp4'   #./demo_logi-c920-stereo-left-1024x0576-.mp4'  # Left Camera in Camrea Point of View (PoV)
+        right_camera_source = './videos/demo_logi-c920-stereo-right-1024x0576-.mp4' #'demo_logi-c920-stereo-right-1280x0720-.mp4'  #./demo_logi-c920-stereo-right-1024x0576-.mp4' # Right Camera in Camrea Point of View (PoV)
+        
+        # En el caso de utilizar este programa con entradas de archivos de
+        # video, el formato de la entrada debe coincidir exactamente con los
+        # parámetros de abajo, en este caso, el video tiene 1024x576
         pixel_width = 1024 # 640 # 1280
         pixel_height = 576 # 360 # 720
 
-
-
         # FPS
-        frame_rate = 15
-
+        frame_rate = 30
 
         # Set the relative position of the stereocam
         camera_in_front_of_you = False
-
 
         # left camera 1
         cam_left = video_thread.VideoThread(
@@ -110,7 +114,7 @@ def main():
             print('cam_left.resource.get(cv2.CAP_PROP_FRAME_COUNT):{:03f}'.
                   format(cam_left.resource.get(cv2.CAP_PROP_FRAME_COUNT)))
         else:
-            print('NOT AVAILABLE')
+            print('L:NOT AVAILABLE')
             return
                 
 
@@ -140,6 +144,7 @@ def main():
                                                   img_width=pixel_width,
                                                   img_height=pixel_height)
         right_detector = handdetector.HandDetector(staticImageMode=False,
+                                                   maxHands=2,
                                                    detectionCon=0.65,
                                                    trackCon=0.65,
                                                    img_width=pixel_width,
@@ -173,10 +178,8 @@ def main():
                                      angle_height)
         angler.build_frame()
 
-
         # Index finger tip position
         # ------------------------------
-
         x_left_finger_screen_pos = 0
         y_left_finger_screen_pos = 0
 
@@ -188,7 +191,6 @@ def main():
 
         # Ciclo
         # ------------------------------
-        
         cycles = 0
         fps = 0
         start = time.time()
@@ -222,10 +224,18 @@ def main():
                 hands_right_image, fingers_right_image = \
                     right_detector.getFingerTipsPos()
 
+            # TODO: Validar que en la imagen izquierda exista la mano 
+            # izquierda con los dedos izquierdos en relación con la imagen 
+            # derecha, es decir, que exista cada mano (izq con izq y derecha
+            # con derecha) en ambos frames. Esto porque se puede dar el caso en
+            # que en el frame izquierdo exista, por ejemplo, solo la mano
+            # derecha y que en el frame derecho exista solo la mano izquierda
 
-            # check 1: motion in both frames:
+            # check 1: fingers in both frames:
             if (len(fingers_left_image) > 0 and len(fingers_right_image) > 0):
 
+                # TODO:  Aquí falta identificar en forma correcta cuando 
+                # es la mano izquierda o derecha
                 for finger_left, finger_right in \
                     zip(fingers_left_image, fingers_right_image):
                     print('finger_left:{}'.format(finger_left))
@@ -249,9 +259,7 @@ def main():
                     # angle normalization
                     delta_y = 0.006509695290859 * X_local * X_local + \
                         0.039473684210526 * -1 * X_local # + vkb_center_point_camera_dist
-                    # fingers_dist.append(D_local-delta_y)
-                    # if finger_left[0] == 0 and 
-                    # if finger_left[0] == 0 and finger_left[1] == left_detector.mpHands.HandLandmark.INDEX_FINGER_TIP:
+
                     print('finger_left:{}'.format(finger_left))
                     if finger_left[0] == 0 and finger_left[1] == left_detector.mpHands.HandLandmark.INDEX_FINGER_TIP:
                         x_left_finger_screen_pos =  finger_left[2]
@@ -274,9 +282,7 @@ def main():
                 fps2 = int(cam_right.current_frame_rate)
                 cps_avg = int(toolbox.round_half_up(fps))  # Average Cycles per second
                 
-                
-                # text = 'FPS:{}/{}\nCPS:{}'.format(fps1, fps2, cps_avg)
-                text = 'X: {:3.1f}\nY: {:3.1f}\nZ: {:3.1f}\nD: {:3.1f}\nDr: {:3.1f}\nFPS:{}/{}\nCPS:{}'.format(X, Y, Z, D, D-delta_y, fps1, fps2, cps_avg)
+                text = 'X: {:3.1f}\nY: {:3.1f}\nZ: {:3.1f}\nD: {:3.1f}\nDr:{:3.1f}\nFPS:{}/{}\nCPS:{}'.format(X, Y, Z, D, D-delta_y, fps1, fps2, cps_avg)
                 
                 lineloc = 0
                 lineheight = 30
@@ -286,7 +292,6 @@ def main():
                                 t,
                                 (10, lineloc),              # location
                                 cv2.FONT_HERSHEY_PLAIN,     # font
-                                # cv2.FONT_HERSHEY_SIMPLEX, # font
                                 1.5,                        # size
                                 (0, 255, 0),                # color
                                 2,                          # line width
@@ -295,15 +300,12 @@ def main():
 
 
             # Display frames
-
             if camera_in_front_of_you:
                 h_frames = np.concatenate((frame_right, frame_left), axis=1)
             else:
                 h_frames = np.concatenate((frame_left, frame_right), axis=1)
 
             cv2.imshow(main_window_name, h_frames)
-
-
 
             if (cycles % 10 == 0):
                 # End time
@@ -320,9 +322,6 @@ def main():
             if cv2.getWindowProperty(
                     main_window_name, cv2.WND_PROP_VISIBLE) < 1:
                 break
-            # elif cv2.getWindowProperty(
-            #         right_window_name, cv2.WND_PROP_VISIBLE) < 1:
-            #     break
             elif key == ord('q'):
                 break
             elif key == ord('d'):

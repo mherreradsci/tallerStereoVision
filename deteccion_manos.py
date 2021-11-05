@@ -22,16 +22,24 @@ def main():
         # set up cameras
         # ------------------------------
 
-        # cameras variables
-        left_camera_source =  'demo_logi-c920-stereo-left-1024x0576-.mp4' #'demo_logi-c920-stereo-left-1280x0720-.mp4'   #./demo_logi-c920-stereo-left-1024x0576-.mp4'  # Left Camera in Camrea Point of View (PoV)
-        right_camera_source = 'demo_logi-c920-stereo-right-1024x0576-.mp4' #'demo_logi-c920-stereo-right-1280x0720-.mp4'  #./demo_logi-c920-stereo-right-1024x0576-.mp4' # Right Camera in Camrea Point of View (PoV)
+        # cameras variables:
+        # Aquí se pone el numero del device obtenido en linux: Para obtener este
+        # número se obtiene con la siguiente línea de comandos:
+        # $ v4l2-ctl --list-devices
+        # Tambíen se puede poner un path + filename de un archivo de video, 
+        left_camera_source =  './videos/demo_logi-c920-stereo-left-1024x0576-.mp4' #'demo_logi-c920-stereo-left-1280x0720-.mp4'   #./demo_logi-c920-stereo-left-1024x0576-.mp4'  # Left Camera in Camrea Point of View (PoV)
+        right_camera_source = './videos/demo_logi-c920-stereo-right-1024x0576-.mp4' #'demo_logi-c920-stereo-right-1280x0720-.mp4'  #./demo_logi-c920-stereo-right-1024x0576-.mp4' # Right Camera in Camrea Point of View (PoV)
+
+        # En el caso de utilizar este programa con entradas de archivos de
+        # video, el formato de la entrada debe coincidir exactamente con los
+        # parámetros de abajo, en este caso, el video tiene 1024x576
         pixel_width = 1024 # 640 # 1280
         pixel_height = 576 # 360 # 720
 
-
         # FPS
-        frame_rate = 15
+        frame_rate = 30
 
+        # Set the relative position of the stereocam
         camera_in_front_of_you = False
 
         # left camera 1
@@ -85,9 +93,9 @@ def main():
             print('cam_left.resource.get(cv2.CAP_PROP_FRAME_COUNT):{:03f}'.
                   format(cam_left.resource.get(cv2.CAP_PROP_FRAME_COUNT)))
         else:
-            print('NOT AVAILABLE')
+            print('L:NOT AVAILABLE')
             return
-                
+
 
         if cam_right.is_available():
             print('Name:{}'.format(main_window_name))
@@ -108,22 +116,6 @@ def main():
                   format(cam_right.resource.get(cv2.CAP_PROP_FRAME_COUNT)))
 
 
-        # left_window_name = 'frame left'
-        # cv2.namedWindow(left_window_name)
-        # cv2.moveWindow(left_window_name,
-        #                (pixel_width//2),
-        #                (pixel_height//2))
-
-        # right_window_name = 'frame right'
-        # cv2.namedWindow(right_window_name)
-        # cv2.moveWindow(right_window_name,
-        #                (pixel_width//2)+640,
-        #                (pixel_height//2))
-
-
-
-
-
         left_detector = handdetector.HandDetector(staticImageMode=False,
                                                   maxHands=2,
                                                   detectionCon=0.65,
@@ -131,17 +123,14 @@ def main():
                                                   img_width=pixel_width,
                                                   img_height=pixel_height)
         right_detector = handdetector.HandDetector(staticImageMode=False,
+                                                   maxHands=2,
                                                    detectionCon=0.65,
                                                    trackCon=0.65,
                                                    img_width=pixel_width,
                                                    img_height=pixel_height)
 
-
-
         # variables
         # ------------------------------
-
-        
         cycles = 0
         fps = 0
         start = time.time()
@@ -174,8 +163,6 @@ def main():
 
                 hands_on_right_image, fingers_on_right_image = \
                     right_detector.getFingerTipsPos()
-            # else:
-            #     vk_right.draw_virtual_keyboard(frame_right)
 
             # TODO: Validar que en la imagen izquierda exista la mano 
             # izquierda con los dedos izquierdos en relación con la imagen 
@@ -184,8 +171,7 @@ def main():
             # que en el frame izquierdo exista, por ejemplo, solo la mano
             # derecha y que en el frame derecho exista solo la mano izquierda
 
-
-            # check 1: hands and finges in both frames:
+            # check 1: fingers in both frames:
             if (len(fingers_on_left_image) > 0 and len(fingers_on_right_image) > 0):
 
                 for finger_left, finger_right in \
@@ -219,25 +205,7 @@ def main():
                                 cv2.LINE_AA,
                                 False)
 
-            # Display current target
-            # if fingers_left_queue:
-            #     frame_add_crosshairs(frame_left, x1m, y1m, 24)
-            #     frame_add_crosshairs(frame_right, x2m, y2m, 24)
-
-            # if fingers_left_queue:
-            #     frame_add_crosshairs(frame_left, x1m, y1m, 24)
-            #     frame_add_crosshairs(frame_right, x2m, y2m, 24)
-            # if X > 0 and Y > 0:
-#            frame_add_crosshairs(frame_left, x_left_finger_screen_pos, y_left_finger_screen_pos, 24)
-            # Pendiente : ...frame_add_crosshairs(frame_right, x_left_finger_screen_pos, y_left_finger_screen_pos, 24)
-
-
-
             # Display frames
-
-            # cv2.imshow(left_window_name, frame_left)
-            # cv2.imshow(right_window_name, frame_right)
-
             if camera_in_front_of_you:
                 h_frames = np.concatenate((frame_right, frame_left), axis=1)
             else:
